@@ -17,7 +17,9 @@ class MyApp : public cinder::app::App {
   void draw() override;
   void keyDown(cinder::app::KeyEvent) override;
  private:
-  std::unique_ptr<
+  void InitWorld();
+
+  std::unique_ptr<b2World> world_;
 };
 
 }  // namespace myapp
