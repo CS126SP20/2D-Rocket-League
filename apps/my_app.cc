@@ -7,8 +7,6 @@
 #include <cinder/app/App.h>
 #include "Box2D/Box2D.h"
 
-
-
 namespace myapp {
 
 const float kGravitationalConstant = -9.81;
@@ -24,6 +22,9 @@ MyApp::MyApp() { }
 
 void MyApp::setup() {
   InitWorld();
+
+  background_image_ = cinder::gl::Texture::create(cinder::loadImage(
+      loadAsset("soccer-background.jpg")));
 }
 
 void MyApp::update() { }
@@ -81,6 +82,11 @@ void MyApp::DrawBackground() {
   cinder::gl::color(0, 1, 0);
   cinder::gl::drawSolidRect( cinder::Rectf( 0.0f, kWindowHeight,
       kWindowWidth, kWindowHeight - kGroundSize));
+
+  // Drawing stadium background
+  cinder::Area background_area()
+  background_image_->setCleanBounds(background_area);
+  cinder::gl::draw(background_image_);
 }
 
 }  // namespace myapp

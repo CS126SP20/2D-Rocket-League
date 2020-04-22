@@ -4,6 +4,8 @@
 #define FINALPROJECT_APPS_MYAPP_H_
 
 #include <cinder/app/App.h>
+#include <cinder/ImageIo.h>
+#include <cinder/gl/Texture.h>
 #include <Box2D/Box2D.h>
 
 
@@ -22,6 +24,7 @@ class MyApp : public cinder::app::App {
   void DrawBackground();
 
   std::unique_ptr<b2World> world_;
+  cinder::gl::TextureRef background_image_;
 };
 
 }  // namespace myapp
