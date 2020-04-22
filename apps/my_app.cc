@@ -42,7 +42,11 @@ void MyApp::draw() {
   std::cout << "x: " << ball_position.x << ", y: " << ball_position.y
             << std::endl;
 
-  cinder::gl::draw
+  cinder::gl::color(1, 1, 1);
+  float radius = kBallRadius / kPixelToMeters;
+  float x_pos = ball_position.x / kPixelToMeters;
+  float y_pos = kWindowHeight - ball_position.y / kPixelToMeters;
+  cinder::gl::drawSolidCircle(cinder::vec2(x_pos, y_pos), radius);
 }
 
 void MyApp::keyDown(KeyEvent event) { }
@@ -60,7 +64,8 @@ void MyApp::InitWorld() {
   b2EdgeShape screen_border_shape;
 
   setWindowSize(kWindowWidth, kWindowHeight);
-  auto box_width = (float) kWindowWidth * kPixelToMeters;
+  // Code for generating screen boundaries, does not properly work yet
+  /**auto box_width = (float) kWindowWidth * kPixelToMeters;
   auto box_height = (float) (kWindowHeight - kCeilingSize - kGroundSize)
                     * kPixelToMeters;
   b2Vec2 lower_left_corner(0.0f, 0.0f);
@@ -78,17 +83,27 @@ void MyApp::InitWorld() {
   screen_border->CreateFixture(&screen_border_shape, 0.0f);
 
   screen_border_shape.Set(upper_left_corner, lower_left_corner);
-  screen_border->CreateFixture(&screen_border_shape, 0.0f);
+  screen_border->CreateFixture(&screen_border_shape, 0.0f);*/
+
+  b2BodyDef ground_body_def;
+  ground_body_def.position.Set((float) kWindowWidth / 2 * kPixelToMeters,
+                               35.496f);
+  b2Body* ground_body = world_->CreateBody(&ground_body_def);
+  b2PolygonShape ground_box;
+  ground_box.SetAsBox((float) kWindowWidth / 2, 5.0f);
+  ground_body->CreateFixture(&ground_box, 0.0f);
+
 
   // Creating the soccer ball
   b2BodyDef ball_body_def;
   ball_body_def.type = b2_dynamicBody;
-  ball_body_def.position.Set(0.0f, 4.0f);
+  ball_body_def.position.Set((float) kWindowWidth / 2 * kPixelToMeters,
+                             (float) kWindowHeight / 2 * kPixelToMeters);
   ball_body_ = world_->CreateBody(&ball_body_def);
 
   b2CircleShape circle;
-  circle.m_p.Set(kWindowWidth / 2 * kPixelToMeters,
-      kWindowHeight / 2 * kPixelToMeters);
+  circle.m_p.Set((float) kWindowWidth / 2 * kPixelToMeters,
+                 (float) kWindowHeight / 2 * kPixelToMeters);
   circle.m_radius = kBallRadius;
 
   b2FixtureDef ball_fixture_def;
@@ -103,8 +118,16 @@ void MyApp::DrawBackground() {
   // White background
   cinder::gl::clear(cinder::Color(1, 1, 1));
 
+  // Drawing stadium background - image does not fit constraints yet
+  cinder::gl::color(0.7, 0.7, 0.7);
+  cinder::Area background_area(0.0f, kWindowHeight - kCeilingSize,
+                               kWindowWidth, kGroundSize);
+  background_image_->setCleanBounds(background_area);
+  cinder::gl::draw(background_image_, cinder::Rectf(0.0f,
+      kGroundSize, kWindowWidth, kWindowHeight - kCeilingSize));
+
   // Drawing the ceiling
-  cinder::gl::color(0, 0, 1);
+  cinder::gl::color(0, 0, 0);
   cinder::gl::drawSolidRect( cinder::Rectf( 0.0f, 0.0f,
                                             kWindowWidth, kCeilingSize));
 
@@ -112,12 +135,6 @@ void MyApp::DrawBackground() {
   cinder::gl::color(0, 1, 0);
   cinder::gl::drawSolidRect( cinder::Rectf( 0.0f, kWindowHeight,
       kWindowWidth, kWindowHeight - kGroundSize));
-
-  // Drawing stadium background
-  cinder::gl::color(0.7, 0.7, 0.7);
-  cinder::Area background_area(0.0f, kGroundSize, kWindowWidth, kWindowHeight - kCeilingSize);
-  background_image_->setCleanBounds(background_area);
-  // cinder::gl::draw(background_image_);
 }
 
 }  // namespace myapp
