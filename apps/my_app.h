@@ -19,6 +19,8 @@ class MyApp : public cinder::app::App {
  private:
   void InitWorld();
 
+  void DrawBackground();
+
   std::unique_ptr<b2World> world_;
 };
 

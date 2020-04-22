@@ -2,8 +2,11 @@
 
 #include "my_app.h"
 
+#include <cinder/gl/draw.h>
+#include <cinder/gl/gl.h>
 #include <cinder/app/App.h>
 #include "Box2D/Box2D.h"
+
 
 
 namespace myapp {
@@ -25,7 +28,9 @@ void MyApp::setup() {
 
 void MyApp::update() { }
 
-void MyApp::draw() { }
+void MyApp::draw() {
+  DrawBackground();
+}
 
 void MyApp::keyDown(KeyEvent event) { }
 
@@ -61,6 +66,21 @@ void MyApp::InitWorld() {
 
   screen_border_shape.Set(upper_left_corner, lower_left_corner);
   screen_border->CreateFixture(&screen_border_shape, 0.0f);
+}
+
+void MyApp::DrawBackground() {
+  // White background
+  cinder::gl::clear(cinder::Color(1, 1, 1));
+
+  // Drawing the ceiling
+  cinder::gl::color(0, 0, 0);
+  cinder::gl::drawSolidRect( cinder::Rectf( 0.0f, 0.0f,
+                                            kWindowWidth, kCeilingSize));
+
+  // Drawing the ground
+  cinder::gl::color(0, 1, 0);
+  cinder::gl::drawSolidRect( cinder::Rectf( 0.0f, kWindowHeight,
+      kWindowWidth, kWindowHeight - kGroundSize));
 }
 
 }  // namespace myapp
