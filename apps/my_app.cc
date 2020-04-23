@@ -26,10 +26,16 @@ void MyApp::setup() {
 
   background_image_ = cinder::gl::Texture::create(cinder::loadImage(
       loadAsset("soccer-background.jpg")));
+  grass_image_ = cinder::gl::Texture::create(cinder::loadImage(
+      loadAsset("grass.jpg")));
+  ball_image_ = cinder::gl::Texture::create(cinder::loadImage(
+      loadAsset("soccer-ball.png")));
+  goal_image_ = cinder::gl::Texture::create(cinder::loadImage(
+      loadAsset("soccer-goal.png")));
 }
 
 void MyApp::update() {
-  float time_step = 1.0f / 60.0f;
+  float time_step = 1.0f / 180.0f;
   int velocity_iterations = 6;
   int position_iterations = 2;
   world_->Step(time_step, velocity_iterations, position_iterations);
@@ -46,7 +52,11 @@ void MyApp::draw() {
   float radius = kBallRadius / kPixelToMeters;
   float x_pos = ball_position.x / kPixelToMeters;
   float y_pos = kWindowHeight - ball_position.y / kPixelToMeters;
-  cinder::gl::drawSolidCircle(cinder::vec2(x_pos, y_pos), radius);
+  //cinder::gl::drawSolidCircle(cinder::vec2(x_pos, y_pos), radius);
+  cinder::gl::draw(ball_image_, cinder::Rectf( x_pos - radius,
+                                               y_pos - radius,
+                                               x_pos + radius,
+                                               y_pos + radius));
 }
 
 void MyApp::keyDown(KeyEvent event) { }
@@ -118,13 +128,10 @@ void MyApp::DrawBackground() {
   // White background
   cinder::gl::clear(cinder::Color(1, 1, 1));
 
-  // Drawing stadium background - image does not fit constraints yet
+  // Drawing stadium background
   cinder::gl::color(0.7, 0.7, 0.7);
-  cinder::Area background_area(0.0f, kWindowHeight - kCeilingSize,
-                               kWindowWidth, kGroundSize);
-  background_image_->setCleanBounds(background_area);
   cinder::gl::draw(background_image_, cinder::Rectf(0.0f,
-      kGroundSize, kWindowWidth, kWindowHeight - kCeilingSize));
+      kCeilingSize, kWindowWidth, kWindowHeight - kGroundSize));
 
   // Drawing the ceiling
   cinder::gl::color(0, 0, 0);
@@ -132,9 +139,22 @@ void MyApp::DrawBackground() {
                                             kWindowWidth, kCeilingSize));
 
   // Drawing the ground
-  cinder::gl::color(0, 1, 0);
-  cinder::gl::drawSolidRect( cinder::Rectf( 0.0f, kWindowHeight,
-      kWindowWidth, kWindowHeight - kGroundSize));
+  cinder::gl::color(0.65, 0.65, 0.65);
+  cinder::gl::draw(grass_image_, cinder::Rectf( 0.0f,
+      kWindowHeight, kWindowWidth, kWindowHeight - kGroundSize));
+
+  // Drawing goals in
+  cinder::gl::color(1, 1, 1);
+  auto goal_height = goal_image_->getActualHeight();
+  auto goal_width = goal_image_->getActualWidth();
+  // Right goal
+  cinder::gl::draw(goal_image_, cinder::Rectf(
+      kWindowWidth - goal_width, kWindowHeight - kGroundSize -
+      goal_height, kWindowWidth, kWindowHeight - kGroundSize));
+  // Left goal
+  cinder::gl::draw(goal_image_, cinder::Rectf( goal_width,
+      kWindowHeight - kGroundSize - goal_height, 0.0f,
+      kWindowHeight - kGroundSize));
 }
 
 }  // namespace myapp

@@ -25,6 +25,9 @@ class MyApp : public cinder::app::App {
 
   std::unique_ptr<b2World> world_;
   cinder::gl::TextureRef background_image_;
+  cinder::gl::TextureRef grass_image_;
+  cinder::gl::TextureRef ball_image_;
+  cinder::gl::TextureRef goal_image_;
   b2Body* ball_body_;
 };
 
