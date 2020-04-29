@@ -35,7 +35,7 @@ void MyApp::setup() {
 }
 
 void MyApp::update() {
-  float time_step = 1.0f / 180.0f;
+  float time_step = 1.0f / 60.0f;
   int velocity_iterations = 6;
   int position_iterations = 2;
   world_->Step(time_step, velocity_iterations, position_iterations);

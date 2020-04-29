@@ -13,10 +13,14 @@
   - Created the ball as a dyanamic body that responds to gravity
   in the Box2D world and drew a circle based off its position in the app
 
+-  **4/27/20** Added in full graphics for game and fixed bugs
+  - Fixed bug where image would not render properly
+  - Figured out how to render images perfectly use rectf in cinder
+
 ### To-Do
 
 - [x] Fix background bug where image does not fix constraint
-- [ ] Fix background glitch near screen bottom
+- [x] Fix background glitch near screen bottom
 - [ ] Fix ball not bouncing off ground like it should
 - [ ] Fix ground being hardcoded as a stop to gravity
 - [ ] Refactor code so not everything is in my-app
