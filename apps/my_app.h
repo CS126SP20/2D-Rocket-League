@@ -29,6 +29,7 @@ class MyApp : public cinder::app::App {
   cinder::gl::TextureRef ball_image_;
   cinder::gl::TextureRef goal_image_;
   b2Body* ball_body_;
+  bool is_velocity_changed_;
 };
 
 }  // namespace myapp

@@ -39,6 +39,16 @@ void MyApp::update() {
   int velocity_iterations = 6;
   int position_iterations = 2;
   world_->Step(time_step, velocity_iterations, position_iterations);
+
+  auto position = ball_body_->GetPosition();
+  if (position.y < 0 && !is_velocity_changed_) {
+    auto velocity_vector = ball_body_->GetLinearVelocity();
+    velocity_vector.y = -0.6f * velocity_vector.y;
+    ball_body_->SetLinearVelocity(velocity_vector);
+    is_velocity_changed_ = true;
+  } else {
+    is_velocity_changed_ = false;
+  }
 }
 
 void MyApp::draw() {
@@ -51,7 +61,7 @@ void MyApp::draw() {
   cinder::gl::color(1, 1, 1);
   float radius = kBallRadius / kPixelToMeters;
   float x_pos = ball_position.x / kPixelToMeters;
-  float y_pos = kWindowHeight - ball_position.y / kPixelToMeters;
+  float y_pos = kWindowHeight - kGroundSize - ball_position.y / kPixelToMeters;
   //cinder::gl::drawSolidCircle(cinder::vec2(x_pos, y_pos), radius);
   cinder::gl::draw(ball_image_, cinder::Rectf( x_pos - radius,
                                                y_pos - radius,
@@ -101,7 +111,7 @@ void MyApp::InitWorld() {
   b2Body* ground_body = world_->CreateBody(&ground_body_def);
   b2PolygonShape ground_box;
   ground_box.SetAsBox((float) kWindowWidth / 2, 5.0f);
-  ground_body->CreateFixture(&ground_box, 0.0f);
+  //ground_body->CreateFixture(&ground_box, 0.0f);
 
 
   // Creating the soccer ball
