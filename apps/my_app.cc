@@ -9,13 +9,20 @@
 
 namespace myapp {
 
-const float kGravitationalConstant = -9.81f;
+// All in game dimensions, if integer, it is in pixels and if not, is in meters
 const float kPixelToMeters = 0.1f;
-const float kBallRadius = 2.0f;
-const int kWindowWidth = 1000;
+const float kBallRadius = 2.1f;
+const int kWindowWidth = 1200;
 const int kWindowHeight = 690;
 const int kCeilingSize = 30;
 const int kGroundSize = 60;
+const int kGoalHeight = 140;
+
+// Box2D world constants
+const float kGravitationalConstant = -9.81f;
+const float kTimeStep = 1.0 / 30.0f;
+const int kVelocityIterations = 6;
+const int kPositionIterations = 2;
 
 using cinder::app::KeyEvent;
 
@@ -32,13 +39,12 @@ void MyApp::setup() {
       loadAsset("soccer-ball.png")));
   goal_image_ = cinder::gl::Texture::create(cinder::loadImage(
       loadAsset("soccer-goal.png")));
+  car_image_ = cinder::gl::Texture::create(cinder::loadImage(
+      loadAsset("car.png")));
 }
 
 void MyApp::update() {
-  float time_step = 1.0 / 30.0f;
-  int velocity_iterations = 6;
-  int position_iterations = 2;
-  world_->Step(time_step, velocity_iterations, position_iterations);
+  world_->Step(kTimeStep, kVelocityIterations, kPositionIterations);
 
   auto position = ball_body_->GetPosition();
   auto box_width = (float) kWindowWidth * kPixelToMeters - kBallRadius;
@@ -55,11 +61,6 @@ void MyApp::update() {
     velocity_vector.x = -0.6f * velocity_vector.x;
     ball_body_->SetLinearVelocity(velocity_vector);
     is_velocity_changed_ = true;
-  } else if (position.y < 2.0f && !is_velocity_changed_) {
-    //ball_body_->SetTransform({position.x, 2.0}, ball_body_->GetAngle());
-    //velocity_vector.y = -0.6f * velocity_vector.y;
-    //ball_body_->SetLinearVelocity(velocity_vector);
-    //is_velocity_changed_ = true;
   } else {
     is_velocity_changed_ = false;
   }
@@ -111,17 +112,18 @@ void MyApp::InitWorld() {
   b2Vec2 gravity(0.0f, kGravitationalConstant);
   world_ = std::make_unique<b2World>(gravity);
 
-  // Just creating ground
+  // Creating ground
   b2BodyDef ground_body_def;
   ground_body_def.position.Set(0,0);
 
   b2Body *ground_body = world_->CreateBody(&ground_body_def);
   b2EdgeShape ground_edge;
   b2FixtureDef box_shape_def;
-  box_shape_def.friction = 0.4f;
+  box_shape_def.friction = 0.3f;
   box_shape_def.shape = &ground_edge;
 
-  ground_edge.Set(b2Vec2(0,0), b2Vec2(100, 0));
+  ground_edge.Set(b2Vec2(0,0),
+      b2Vec2(kWindowWidth * kPixelToMeters, 0));
   ground_body->CreateFixture(&box_shape_def);
 
   // Creating the soccer ball
@@ -141,6 +143,10 @@ void MyApp::InitWorld() {
   ball_fixture_def.friction = 0.3f;
 
   ball_body_->CreateFixture(&ball_fixture_def);
+
+  // Creating red car
+
+
 }
 
 void MyApp::DrawBackground() {
@@ -164,15 +170,24 @@ void MyApp::DrawBackground() {
 
   // Drawing goals in
   cinder::gl::color(1, 1, 1);
-  auto goal_height = (int) (1.3 * goal_image_->getActualHeight());
   auto goal_width = goal_image_->getActualWidth();
-  // Right goal
+  // Right goal and car
   cinder::gl::draw(goal_image_, cinder::Rectf(
       kWindowWidth - goal_width, kWindowHeight - kGroundSize -
-      goal_height, kWindowWidth, kWindowHeight - kGroundSize));
+      kGoalHeight, kWindowWidth, kWindowHeight - kGroundSize));
+
+
+
+
+
   // Left goal
   cinder::gl::draw(goal_image_, cinder::Rectf( goal_width,
-      kWindowHeight - kGroundSize - goal_height, 0.0f,
+      kWindowHeight - kGroundSize - kGoalHeight, 0.0f,
+      kWindowHeight - kGroundSize));
+
+  cinder::gl::draw(car_image_, cinder::Rectf( goal_width + 10,
+      kWindowHeight - kGroundSize - 1.3 * car_image_->getActualHeight(),
+      goal_width + 10 + 1.3 * car_image_->getActualWidth(),
       kWindowHeight - kGroundSize));
 }
 

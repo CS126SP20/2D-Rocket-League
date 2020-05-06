@@ -28,7 +28,10 @@ class MyApp : public cinder::app::App {
   cinder::gl::TextureRef grass_image_;
   cinder::gl::TextureRef ball_image_;
   cinder::gl::TextureRef goal_image_;
+  cinder::gl::TextureRef car_image_;
   b2Body* ball_body_;
+  b2Body* red_car_;
+  b2Body* blue_car_;
   bool is_velocity_changed_;
 };
 
