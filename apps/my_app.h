@@ -32,7 +32,6 @@ class MyApp : public cinder::app::App {
   b2Body* ball_body_;
   b2Body* red_car_;
   b2Body* blue_car_;
-  bool is_velocity_changed_;
 };
 
 }  // namespace myapp
