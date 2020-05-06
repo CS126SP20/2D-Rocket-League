@@ -50,17 +50,16 @@ void MyApp::update() {
     velocity_vector.y = -0.6f * velocity_vector.y;
     ball_body_->SetLinearVelocity(velocity_vector);
     is_velocity_changed_ = true;
-  } else if ((position.x < kBallRadius || position.x > box_width)
+  } else if ((position.x < kBallRadius + 0.5f || position.x > box_width - 0.5f)
              && !is_velocity_changed_) {
     velocity_vector.x = -0.6f * velocity_vector.x;
     ball_body_->SetLinearVelocity(velocity_vector);
     is_velocity_changed_ = true;
   } else if (position.y < 2.0f && !is_velocity_changed_) {
-    ball_body_->SetTransform({position.x, 2.0},
-                             ball_body_->GetAngle());
-    velocity_vector.y = -0.6f * velocity_vector.y;
-    ball_body_->SetLinearVelocity(velocity_vector);
-    is_velocity_changed_ = true;
+    //ball_body_->SetTransform({position.x, 2.0}, ball_body_->GetAngle());
+    //velocity_vector.y = -0.6f * velocity_vector.y;
+    //ball_body_->SetLinearVelocity(velocity_vector);
+    //is_velocity_changed_ = true;
   } else {
     is_velocity_changed_ = false;
   }
@@ -70,6 +69,7 @@ void MyApp::draw() {
   DrawBackground();
 
   b2Vec2 ball_position = ball_body_->GetPosition();
+  float angle = ball_body_->GetAngle();
   std::cout << "x: " << ball_position.x << ", y: " << ball_position.y
             << std::endl;
 
@@ -77,7 +77,6 @@ void MyApp::draw() {
   float radius = kBallRadius / kPixelToMeters;
   float x_pos = ball_position.x / kPixelToMeters;
   float y_pos = kWindowHeight - kGroundSize - ball_position.y / kPixelToMeters;
-  //cinder::gl::drawSolidCircle(cinder::vec2(x_pos, y_pos), radius);
   cinder::gl::draw(ball_image_, cinder::Rectf( x_pos - radius,
                                                y_pos - radius,
                                                x_pos + radius,
@@ -109,34 +108,18 @@ void MyApp::InitWorld() {
   b2Vec2 gravity(0.0f, kGravitationalConstant);
   world_ = std::make_unique<b2World>(gravity);
 
-  // Making the 4 walls by putting static body rectangle around screen window
-  // Code currently does not work
-  /**auto box_width = (float) kWindowWidth * kPixelToMeters;
-  auto box_height = (float) (kWindowHeight - kCeilingSize - kGroundSize)
-                    * kPixelToMeters;
-
-  b2BodyDef screen_border_def;
-  screen_border_def.type = b2_staticBody;
-  screen_border_def.position.Set(box_width / 2.0f, 4.4955f);
-  b2Body* screen_border = world_->CreateBody(&screen_border_def);
-
-  b2PolygonShape border_shape;
-  border_shape.SetAsBox(box_width / 2.0f, box_height / 2.0f);
-
-  b2FixtureDef fixture_def;
-  fixture_def.shape = &border_shape;
-  fixture_def.density = 1;
-  screen_border->CreateFixture(&fixture_def);
   // Just creating ground
   b2BodyDef ground_body_def;
-  ground_body_def.type = b2_staticBody;
-  ground_body_def.position.Set(0.0f,
-                               29.4954f);
-  ground_body_def.angle = 0.0f;
-  b2Body* ground_body = world_->CreateBody(&ground_body_def);
-  b2PolygonShape ground_box;
-  ground_box.SetAsBox(10000.0f, 5.0f);
-  ground_body->CreateFixture(&ground_box, 0.0f);*/
+  ground_body_def.position.Set(0,0);
+
+  b2Body *ground_body = world_->CreateBody(&ground_body_def);
+  b2EdgeShape ground_edge;
+  b2FixtureDef box_shape_def;
+  box_shape_def.friction = 0.4f;
+  box_shape_def.shape = &ground_edge;
+
+  ground_edge.Set(b2Vec2(0,0), b2Vec2(100, 0));
+  ground_body->CreateFixture(&box_shape_def);
 
   // Creating the soccer ball
   b2BodyDef ball_body_def;
@@ -146,8 +129,6 @@ void MyApp::InitWorld() {
   ball_body_ = world_->CreateBody(&ball_body_def);
 
   b2CircleShape circle;
-  circle.m_p.Set((float) kWindowWidth / 2 * kPixelToMeters,
-                 (float) kWindowHeight / 2 * kPixelToMeters);
   circle.m_radius = kBallRadius;
 
   b2FixtureDef ball_fixture_def;
