@@ -17,12 +17,20 @@ const int kWindowHeight = 690;
 const int kCeilingSize = 30;
 const int kGroundSize = 60;
 const int kGoalHeight = 140;
+const int kGoalWidth = 80;
+const int kCarWidth = 110;
+const int kCarHeight = 52;
+const int kVertexCount = 5;
+const int kGoalToCarBuffer = 10;
 
 // Box2D world constants
 const float kGravitationalConstant = -9.81f;
 const float kTimeStep = 1.0 / 30.0f;
 const int kVelocityIterations = 6;
 const int kPositionIterations = 2;
+const float kRestitution = 0.6f;
+const float kFriction = 0.3f;
+const float kWallBuffer = 0.5f;
 
 using cinder::app::KeyEvent;
 
@@ -53,12 +61,12 @@ void MyApp::update() {
 
   auto velocity_vector = ball_body_->GetLinearVelocity();
   if (position.y > box_height && !is_velocity_changed_) {
-    velocity_vector.y = -0.6f * velocity_vector.y;
+    velocity_vector.y = -kRestitution * velocity_vector.y;
     ball_body_->SetLinearVelocity(velocity_vector);
     is_velocity_changed_ = true;
-  } else if ((position.x < kBallRadius + 0.5f || position.x > box_width - 0.5f)
-             && !is_velocity_changed_) {
-    velocity_vector.x = -0.6f * velocity_vector.x;
+  } else if ((position.x < kBallRadius + kWallBuffer || position.x >
+      box_width - kWallBuffer) && !is_velocity_changed_) {
+    velocity_vector.x = -kRestitution * velocity_vector.x;
     ball_body_->SetLinearVelocity(velocity_vector);
     is_velocity_changed_ = true;
   } else {
@@ -119,7 +127,7 @@ void MyApp::InitWorld() {
   b2Body *ground_body = world_->CreateBody(&ground_body_def);
   b2EdgeShape ground_edge;
   b2FixtureDef box_shape_def;
-  box_shape_def.friction = 0.3f;
+  box_shape_def.friction = kFriction;
   box_shape_def.shape = &ground_edge;
 
   ground_edge.Set(b2Vec2(0,0),
@@ -138,15 +146,59 @@ void MyApp::InitWorld() {
 
   b2FixtureDef ball_fixture_def;
   ball_fixture_def.shape = &circle;
-  ball_fixture_def.restitution = 0.6f;
+  ball_fixture_def.restitution = kRestitution;
   ball_fixture_def.density = 1.0f;
-  ball_fixture_def.friction = 0.3f;
+  ball_fixture_def.friction = kFriction;
 
   ball_body_->CreateFixture(&ball_fixture_def);
 
-  // Creating red car
+  // Creating cars
+  float car_y = kWindowHeight * kPixelToMeters / 2.0f;
+  auto red_car_x = (kGoalWidth + kGoalToCarBuffer + kCarWidth / 2.0f) *
+                   kPixelToMeters;
+  auto blue_car_x = kWindowWidth * kPixelToMeters - red_car_x;
 
+  b2BodyDef car_body_def;
+  car_body_def.type = b2_dynamicBody;
+  car_body_def.position.Set(red_car_x, car_y);
+  red_car_ = world_->CreateBody(&car_body_def);
 
+  car_body_def.position.Set(blue_car_x, car_y);
+  blue_car_ = world_->CreateBody(&car_body_def);
+
+  b2PolygonShape red_car_shape;
+  // This had to be hard coded with magic numbers as I drew a diagram
+  // on grid paper in order to figure out exact coordinates
+  b2Vec2 red_verticies[kVertexCount];
+  red_verticies[0].Set(-5.5f, 2.6f);
+  red_verticies[1].Set(-5.5f, -2.6f);
+  red_verticies[2].Set(5.5f, -2.6f);
+  red_verticies[3].Set(4.0f, -0.8f);
+  red_verticies[4].Set(1.0f, 0.8f);
+  red_car_shape.Set(red_verticies, kVertexCount);
+
+  b2FixtureDef red_car_fixture;
+  red_car_fixture.friction = kFriction;
+  red_car_fixture.restitution = kRestitution;
+  red_car_fixture.shape = &red_car_shape;
+  red_car_fixture.density = 1.0f;
+  red_car_->CreateFixture(&red_car_fixture);
+
+  // Flipping x coordinates for blue car
+  b2PolygonShape blue_car_shape;
+  b2Vec2 blue_verticies[kVertexCount];
+  for (size_t i = 0; i < kVertexCount; i++) {
+    blue_verticies[i].Set(-red_verticies[kVertexCount - 1 - i].x,
+        red_verticies[kVertexCount - 1 - i].y);
+  }
+  blue_car_shape.Set(blue_verticies, kVertexCount);
+
+  b2FixtureDef blue_car_fixture;
+  blue_car_fixture.friction = kFriction;
+  blue_car_fixture.restitution = kRestitution;
+  blue_car_fixture.shape = &blue_car_shape;
+  blue_car_fixture.density = 1.0f;
+  red_car_->CreateFixture(&blue_car_fixture);
 }
 
 void MyApp::DrawBackground() {
@@ -170,25 +222,25 @@ void MyApp::DrawBackground() {
 
   // Drawing goals in
   cinder::gl::color(1, 1, 1);
-  auto goal_width = goal_image_->getActualWidth();
   // Right goal and car
   cinder::gl::draw(goal_image_, cinder::Rectf(
-      kWindowWidth - goal_width, kWindowHeight - kGroundSize -
+      kWindowWidth - kGoalWidth, kWindowHeight - kGroundSize -
       kGoalHeight, kWindowWidth, kWindowHeight - kGroundSize));
 
 
 
-
-
+  static int counter = -400;
   // Left goal
-  cinder::gl::draw(goal_image_, cinder::Rectf( goal_width,
+  cinder::gl::draw(goal_image_, cinder::Rectf( kGoalWidth,
       kWindowHeight - kGroundSize - kGoalHeight, 0.0f,
       kWindowHeight - kGroundSize));
 
-  cinder::gl::draw(car_image_, cinder::Rectf( goal_width + 10,
-      kWindowHeight - kGroundSize - 1.3 * car_image_->getActualHeight(),
-      goal_width + 10 + 1.3 * car_image_->getActualWidth(),
+  cinder::gl::color(1, 0, 0);
+  cinder::gl::draw(car_image_, cinder::Rectf( kGoalWidth + 10 + counter,
+      kWindowHeight - kGroundSize - kCarHeight,
+      kGoalWidth + 10 + counter + kCarWidth,
       kWindowHeight - kGroundSize));
+  counter++;
 }
 
 }  // namespace myapp
