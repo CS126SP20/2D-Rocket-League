@@ -32,7 +32,9 @@ const int kPositionIterations = 2;
 const float kRestitution = 0.6f;
 const float kFriction = 0.3f;
 const int kSpeed = 15;
-const float kBoostMultiplier = 1.5f;
+const float kBoostSpeed = 20;
+const float kAngleSpeed = 1.3f;
+const float kCarToWallBuffer = 0.12f;
 
 using cinder::app::KeyEvent;
 
@@ -54,7 +56,30 @@ void MyApp::setup() {
 }
 
 void MyApp::update() {
+  // Is one move in the box2d world
   world_->Step(kTimeStep, kVelocityIterations, kPositionIterations);
+
+  // Check if red car is on ground and resets jumps
+  b2Vec2 red_car_position = red_car_->GetPosition();
+  if (red_car_position.y <= kCarHeight / 2.0f *
+                            kPixelToMeters + 10 * kCarToWallBuffer) {
+    is_red_on_ground_ = true;
+    red_jump_count_ = 0;
+    has_red_boosted_ = false;
+  } else {
+    is_red_on_ground_ = false;
+  }
+
+  // Check if blue car is on ground and resets jump
+  b2Vec2 blue_car_position = blue_car_->GetPosition();
+  if (blue_car_position.y <= kCarHeight / 2.0f *
+                            kPixelToMeters + 10 * kCarToWallBuffer) {
+    is_blue_on_ground_ = true;
+    blue_jump_count_ = 0;
+    has_blue_boosted = false;
+  } else {
+    is_blue_on_ground_ = false;
+  }
 }
 
 void MyApp::draw() {
@@ -62,8 +87,6 @@ void MyApp::draw() {
 
   b2Vec2 ball_position = ball_body_->GetPosition();
   float angle = ball_body_->GetAngle();
-  //std::cout << "x: " << ball_position.x << ", y: " << ball_position.y
-  // << std::endl;
 
   cinder::gl::color(1, 1, 1);
   float radius = kBallRadius / kPixelToMeters;
@@ -83,8 +106,6 @@ void MyApp::draw() {
   float red_x = red_car_pos.x / kPixelToMeters;
   float red_y = kWindowHeight - kGroundSize - red_car_pos.y / kPixelToMeters;
   float red_angle = red_car_->GetAngle();
-  //std::cout << "x: " << red_car_pos.x << ", y: " << red_car_pos.y
-   //<< std::endl;
 
   cinder::gl::color(1, 0, 0.8);
   cinder::gl::pushModelMatrix();
@@ -100,8 +121,6 @@ void MyApp::draw() {
   float blue_x = blue_car_pos.x / kPixelToMeters;
   float blue_y = kWindowHeight - kGroundSize - blue_car_pos.y / kPixelToMeters;
   float blue_angle = blue_car_->GetAngle();
-  //std::cout << "x: " << blue_car_pos.x << ", y: " << blue_car_pos.y
-   //<< std::endl;
 
   cinder::gl::color(1, 1, 1);
   cinder::gl::pushModelMatrix();
@@ -114,30 +133,77 @@ void MyApp::draw() {
 }
 
 void MyApp::keyDown(KeyEvent event) {
+  auto blue_velocity = blue_car_->GetLinearVelocity();
+  auto red_velocity = red_car_->GetLinearVelocity();
+
+  // Boost should come out back of car so calculating angle
+  float blue_angle = blue_car_->GetAngle();
+  float red_angle = red_car_->GetAngle();
+  float red_boost_x = kBoostSpeed * cos(red_angle);
+  float red_boost_y = kBoostSpeed * sin(red_angle);
+  float blue_boost_x = -kBoostSpeed * cos(blue_angle);
+  float blue_boost_y = -kBoostSpeed * sin(blue_angle);
+
   switch (event.getCode()) {
     case KeyEvent::KEY_UP: {
-      blue_car_->SetLinearVelocity({0, kSpeed});
+      if (blue_jump_count_ <= 1) {
+        blue_car_->SetLinearVelocity({blue_velocity.x, kSpeed});
+        blue_jump_count_++;
+      }
       break;
     }
     case KeyEvent::KEY_RIGHT: {
-      blue_car_->SetLinearVelocity({kSpeed, 0});
+      if (is_blue_on_ground_) {
+        blue_car_->SetLinearVelocity({kSpeed, blue_velocity.y});
+      } else {
+        blue_car_->SetAngularVelocity(-kAngleSpeed);
+      }
       break;
     }
     case KeyEvent::KEY_LEFT: {
-      blue_car_->SetLinearVelocity({-kSpeed, 0});
+      if (is_blue_on_ground_) {
+        blue_car_->SetLinearVelocity({-kSpeed, blue_velocity.y});
+      } else {
+        blue_car_->SetAngularVelocity(kAngleSpeed);
+      }
       break;
     }
+    case KeyEvent::KEY_DOWN: {
+      if (!has_blue_boosted) {
+        blue_car_->SetLinearVelocity({blue_boost_x, blue_boost_y});
+        has_blue_boosted = true;
+        break;
+      }
+    }
     case KeyEvent::KEY_w: {
-      red_car_->SetLinearVelocity({0, kSpeed});
+      if (red_jump_count_ <= 1) {
+        red_car_->SetLinearVelocity({red_velocity.x, kSpeed});
+        red_jump_count_++;
+      }
       break;
     }
     case KeyEvent::KEY_d: {
-      red_car_->SetLinearVelocity({kSpeed, 0});
+      if (is_red_on_ground_) {
+        red_car_->SetLinearVelocity({kSpeed, red_velocity.y});
+      } else {
+        red_car_->SetAngularVelocity(-kAngleSpeed);
+      }
       break;
     }
     case KeyEvent::KEY_a: {
-      red_car_->SetLinearVelocity({-kSpeed, 0});
+      if (is_red_on_ground_) {
+        red_car_->SetLinearVelocity({-kSpeed, red_velocity.y});
+      } else {
+        red_car_->SetAngularVelocity(kAngleSpeed);
+      }
       break;
+    }
+    case KeyEvent::KEY_s: {
+      if (!has_red_boosted_) {
+        red_car_->SetLinearVelocity({red_boost_x, red_boost_y});
+        has_red_boosted_ = true;
+        break;
+      }
     }
   }
 }
@@ -186,7 +252,7 @@ void MyApp::InitWorld() {
 
   b2FixtureDef ball_fixture_def;
   ball_fixture_def.shape = &circle;
-  ball_fixture_def.restitution = kRestitution;
+  ball_fixture_def.restitution = kRestitution + kCarToWallBuffer;
   ball_fixture_def.density = 1.0f;
   ball_fixture_def.friction = kFriction;
 
