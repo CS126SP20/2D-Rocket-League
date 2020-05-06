@@ -71,16 +71,19 @@ void MyApp::draw() {
   b2Vec2 ball_position = ball_body_->GetPosition();
   float angle = ball_body_->GetAngle();
   std::cout << "x: " << ball_position.x << ", y: " << ball_position.y
-            << std::endl;
+    << std::endl;
 
   cinder::gl::color(1, 1, 1);
   float radius = kBallRadius / kPixelToMeters;
   float x_pos = ball_position.x / kPixelToMeters;
   float y_pos = kWindowHeight - kGroundSize - ball_position.y / kPixelToMeters;
-  cinder::gl::draw(ball_image_, cinder::Rectf( x_pos - radius,
-                                               y_pos - radius,
-                                               x_pos + radius,
-                                               y_pos + radius));
+
+  cinder::gl::pushModelMatrix();
+  cinder::gl::translate(x_pos,y_pos);
+  cinder::gl::rotate(-angle);
+  cinder::gl::draw(ball_image_, cinder::Rectf(radius, -radius, -radius,
+      radius));
+  cinder::gl::popModelMatrix();
 }
 
 void MyApp::keyDown(KeyEvent event) {
