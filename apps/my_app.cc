@@ -10,35 +10,9 @@
 
 #include "Box2D/Box2D.h"
 
+using namespace mylibrary;
+
 namespace myapp {
-
-// All in game dimensions, if integer, it is in pixels and if not, is in meters
-const float kPixelToMeters = 0.1f;
-const float kBallRadius = 2.1f;
-const int kWindowWidth = 1200;
-const int kWindowHeight = 690;
-const int kCeilingSize = 170;
-const int kGroundSize = 60;
-const int kGoalHeight = 140;
-const int kGoalWidth = 80;
-const int kCarWidth = 110;
-const int kCarHeight = 52;
-const int kVertexCount = 5;
-const int kGoalToCarBuffer = 10;
-
-// Box2D world constants
-const float kGravitationalConstant = -9.81f;
-const float kTimeStep = 1.0 / 30.0f;
-const int kVelocityIterations = 6;
-const int kPositionIterations = 2;
-const float kRestitution = 0.6f;
-const float kFriction = 0.3f;
-const int kSpeed = 15;
-const float kBoostSpeed = 20;
-const float kAngleSpeed = 40.0f;
-const float kMaxAng = 2.8f;
-const float kCarToWallBuffer = 0.12f;
-const float kCrossbarBuffer = 0.3f;
 
 using cinder::app::KeyEvent;
 
@@ -47,41 +21,23 @@ MyApp::MyApp() {}
 void MyApp::setup() {
   InitWorld();
 
-  background_image_ = cinder::gl::Texture::create(
-      cinder::loadImage(loadAsset(
-          "soccer-background.jpg")));
-  grass_image_ =
-      cinder::gl::Texture::create(cinder::loadImage(
-          loadAsset("grass.jpg")));
-  ball_image_ = cinder::gl::Texture::create(
-      cinder::loadImage(loadAsset(
-          "soccer-ball.png")));
-  goal_image_ = cinder::gl::Texture::create(
-      cinder::loadImage(loadAsset(
-          "soccer-goal.png")));
-  car_image_ =
-      cinder::gl::Texture::create(cinder::loadImage(
-          loadAsset("car.png")));
+  LoadImages();
 }
 
 void MyApp::update() {
   // Records time
-  time_ = time_ - 1.0f / 60.0f;
+  time_ -= 1.0f / 60.0f;
   // Is one move in the box2d world
   world_->Step(kTimeStep, kVelocityIterations, kPositionIterations);
 
   // Checking for a goal
   b2Vec2 ball_position = ball_body_->GetPosition();
-  if (ball_position.x + kBallRadius <= kGoalWidth * kPixelToMeters &&
-        ball_position.y + kBallRadius <= kGoalHeight * kPixelToMeters &&
-        goal_ != "blue") {
+  if (CheckGoalScored(ball_position, true) && goal_ != "blue") {
     goal_ = "blue";
     blue_goals_++;
     Reset();
   }
-  if (ball_position.x + kBallRadius >= (kWindowWidth - kGoalWidth) *
-        kPixelToMeters && ball_position.y + kBallRadius <= kGoalHeight
-        * kPixelToMeters && goal_ != "red") {
+  if (CheckGoalScored(ball_position, false) && goal_ != "red") {
     goal_ = "red";
     red_goals_++;
     Reset();
@@ -111,112 +67,24 @@ void MyApp::update() {
 }
 
 void MyApp::draw() {
-  // Game over
+  // Checking game over
   if (time_ <= -10) {
     exit(0);
   }
   if (time_ <= 0) {
-    if (red_goals_ > blue_goals_) {
-      cinder::gl::clear(cinder::Color(1, 0, 0));
-      std::stringstream ss;
-      ss << "RED WINS";
-      PrintText(ss.str(), {kWindowWidth, 200},
-                {kWindowWidth / 2, kWindowHeight / 2});
-    } else if (blue_goals_ > red_goals_) {
-      cinder::gl::clear(cinder::Color(0, 0, 1));
-      std::stringstream ss;
-      ss << "BLUE WINS";
-      PrintText(ss.str(), {kWindowWidth, 200},
-                {kWindowWidth / 2, kWindowHeight / 2});
-    } else {
-      cinder::gl::clear(cinder::Color(0, 0, 0));
-      std::stringstream ss;
-      ss << "DRAW";
-      PrintText(ss.str(), {kWindowWidth, 200},
-                {kWindowWidth / 2, kWindowHeight / 2});
-    }
+    DrawGameOver();
     return;
   }
+
   DrawBackground();
 
-  b2Vec2 ball_position = ball_body_->GetPosition();
-  float angle = ball_body_->GetAngle();
+  DrawBall();
 
-  cinder::gl::color(1, 1, 1);
-  float radius = kBallRadius / kPixelToMeters;
-  float x_pos = ball_position.x / kPixelToMeters;
-  float y_pos = kWindowHeight - kGroundSize - ball_position.y / kPixelToMeters;
+  DrawRedCar();
 
-  // Drawing ball with rotations
-  cinder::gl::pushModelMatrix();
-  cinder::gl::translate(x_pos, y_pos);
-  cinder::gl::rotate(-angle);
-  cinder::gl::draw(ball_image_,
-                   cinder::Rectf(radius, -radius, -radius, radius));
-  cinder::gl::popModelMatrix();
+  DrawBlueCar();
 
-  // Drawing red car with rotations
-  b2Vec2 red_car_pos = red_car_->GetPosition();
-  float red_x = red_car_pos.x / kPixelToMeters;
-  float red_y = kWindowHeight - kGroundSize - red_car_pos.y / kPixelToMeters;
-  float red_angle = red_car_->GetAngle();
-
-  cinder::gl::color(1, 0, 0.8);
-  cinder::gl::pushModelMatrix();
-  cinder::gl::translate(red_x, red_y);
-  cinder::gl::rotate(-red_angle);
-  cinder::gl::draw(car_image_,
-                   cinder::Rectf(-kCarWidth / 2.0f,
-                       -kCarHeight / 2.0f,kCarWidth / 2.0f,
-                       kCarHeight / 2.0f));
-  cinder::gl::popModelMatrix();
-
-  // Drawing blue car with rotations
-  b2Vec2 blue_car_pos = blue_car_->GetPosition();
-  float blue_x = blue_car_pos.x / kPixelToMeters;
-  float blue_y = kWindowHeight - kGroundSize - blue_car_pos.y / kPixelToMeters;
-  float blue_angle = blue_car_->GetAngle();
-
-  cinder::gl::color(1, 1, 1);
-  cinder::gl::pushModelMatrix();
-  cinder::gl::translate(blue_x, blue_y);
-  cinder::gl::rotate(-blue_angle);
-  cinder::gl::draw(car_image_,
-                   cinder::Rectf(kCarWidth / 2.0f,
-                       -kCarHeight / 2.0f,-kCarWidth / 2.0f,
-                       kCarHeight / 2.0f));
-  cinder::gl::popModelMatrix();
-
-  if (goal_ == "blue" && screen_time_ <= 3.0f) {
-    cinder::gl::color(0, 0, 1);
-    cinder::gl::drawSolidRect(
-        cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
-    std::stringstream ss;
-    ss << "Blue Scored";
-    PrintText(ss.str(), {kWindowWidth, 50},
-              {kWindowWidth / 2, kCeilingSize / 2});
-    screen_time_ += 1 / 60.0f;
-    time_ += 1 / 60.0f;
-  } else if (goal_ == "red" && screen_time_ <= 3.0f) {
-    cinder::gl::color(1, 0, 0);
-    cinder::gl::drawSolidRect(
-        cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
-    std::stringstream ss;
-    ss << "Red Scored";
-    PrintText(ss.str(), {kWindowWidth, 50},
-              {kWindowWidth / 2, kCeilingSize / 2});
-    screen_time_ += 1 / 60.0f;
-    time_ += 1 / 60.0f;
-  } else {
-    goal_ = "none";
-    screen_time_ = 0.0f;
-    std::stringstream ss;
-    ss << "Red: " << red_goals_;
-    ss << "\t \t \t \t \t Time Left: " << (int) time_;
-    ss << "\t \t \t \t \t \t \t Blue: " << blue_goals_;
-    PrintText(ss.str(), {kWindowWidth, 50},
-              {kWindowWidth / 2, kCeilingSize / 2});
-  }
+  DrawScoreboard();
 }
 
 void MyApp::keyDown(KeyEvent event) {
@@ -458,6 +326,7 @@ void MyApp::DrawBackground() {
           kWindowHeight - kGroundSize -kGoalHeight, 0.0f,
           kWindowHeight - kGroundSize));
 }
+
 // Copied from snake project
 void MyApp::PrintText(const std::string& text, const cinder::ivec2& size,
                const cinder::vec2& loc) {
@@ -486,6 +355,134 @@ void MyApp::PrintText(const std::string& text, const cinder::ivec2& size,
 
 void MyApp::Reset() {
   InitWorld();
+}
+
+void MyApp::LoadImages() {
+  background_image_ = cinder::gl::Texture::create(
+      cinder::loadImage(loadAsset(
+          "soccer-background.jpg")));
+  grass_image_ =
+      cinder::gl::Texture::create(cinder::loadImage(
+          loadAsset("grass.jpg")));
+  ball_image_ = cinder::gl::Texture::create(
+      cinder::loadImage(loadAsset(
+          "soccer-ball.png")));
+  goal_image_ = cinder::gl::Texture::create(
+      cinder::loadImage(loadAsset(
+          "soccer-goal.png")));
+  car_image_ =
+      cinder::gl::Texture::create(cinder::loadImage(
+          loadAsset("car.png")));
+}
+
+void MyApp::DrawGameOver() {
+  if (red_goals_ > blue_goals_) {
+    cinder::gl::clear(cinder::Color(1, 0, 0));
+    std::stringstream ss;
+    ss << "RED WINS";
+    PrintText(ss.str(), {kWindowWidth, 200},
+              {kWindowWidth / 2, kWindowHeight / 2});
+  } else if (blue_goals_ > red_goals_) {
+    cinder::gl::clear(cinder::Color(0, 0, 1));
+    std::stringstream ss;
+    ss << "BLUE WINS";
+    PrintText(ss.str(), {kWindowWidth, 200},
+              {kWindowWidth / 2, kWindowHeight / 2});
+  } else {
+    cinder::gl::clear(cinder::Color(0, 0, 0));
+    std::stringstream ss;
+    ss << "DRAW";
+    PrintText(ss.str(), {kWindowWidth, 200},
+              {kWindowWidth / 2, kWindowHeight / 2});
+  }
+  return;
+}
+
+void MyApp::DrawBall() {
+  b2Vec2 ball_position = ball_body_->GetPosition();
+  float angle = ball_body_->GetAngle();
+
+  cinder::gl::color(1, 1, 1);
+  float radius = kBallRadius / kPixelToMeters;
+  float x_pos = ball_position.x / kPixelToMeters;
+  float y_pos = kWindowHeight - kGroundSize - ball_position.y / kPixelToMeters;
+
+  // Drawing ball with rotations
+  cinder::gl::pushModelMatrix();
+  cinder::gl::translate(x_pos, y_pos);
+  cinder::gl::rotate(-angle);
+  cinder::gl::draw(ball_image_,
+                   cinder::Rectf(radius, -radius, -radius, radius));
+  cinder::gl::popModelMatrix();
+}
+
+void MyApp::DrawRedCar() {
+  // Drawing red car with rotations
+  b2Vec2 red_car_pos = red_car_->GetPosition();
+  float red_x = red_car_pos.x / kPixelToMeters;
+  float red_y = kWindowHeight - kGroundSize - red_car_pos.y / kPixelToMeters;
+  float red_angle = red_car_->GetAngle();
+
+  cinder::gl::color(1, 0, 0.8);
+  cinder::gl::pushModelMatrix();
+  cinder::gl::translate(red_x, red_y);
+  cinder::gl::rotate(-red_angle);
+  cinder::gl::draw(car_image_,
+                   cinder::Rectf(-kCarWidth / 2.0f,
+                                 -kCarHeight / 2.0f,kCarWidth / 2.0f,
+                                 kCarHeight / 2.0f));
+  cinder::gl::popModelMatrix();
+}
+
+void MyApp::DrawBlueCar() {
+  // Drawing blue car with rotations
+  b2Vec2 blue_car_pos = blue_car_->GetPosition();
+  float blue_x = blue_car_pos.x / kPixelToMeters;
+  float blue_y = kWindowHeight - kGroundSize - blue_car_pos.y / kPixelToMeters;
+  float blue_angle = blue_car_->GetAngle();
+
+  cinder::gl::color(1, 1, 1);
+  cinder::gl::pushModelMatrix();
+  cinder::gl::translate(blue_x, blue_y);
+  cinder::gl::rotate(-blue_angle);
+  cinder::gl::draw(car_image_,
+                   cinder::Rectf(kCarWidth / 2.0f,
+                                 -kCarHeight / 2.0f,-kCarWidth / 2.0f,
+                                 kCarHeight / 2.0f));
+  cinder::gl::popModelMatrix();
+}
+
+void MyApp::DrawScoreboard() {
+  if (goal_ == "blue" && screen_time_ <= 3.0f) {
+    cinder::gl::color(0, 0, 1);
+    cinder::gl::drawSolidRect(
+        cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
+    std::stringstream ss;
+    ss << "Blue Scored";
+    PrintText(ss.str(), {kWindowWidth, 50},
+              {kWindowWidth / 2, kCeilingSize / 2});
+    screen_time_ += 1 / 60.0f;
+    time_ += 1 / 60.0f;
+  } else if (goal_ == "red" && screen_time_ <= 3.0f) {
+    cinder::gl::color(1, 0, 0);
+    cinder::gl::drawSolidRect(
+        cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
+    std::stringstream ss;
+    ss << "Red Scored";
+    PrintText(ss.str(), {kWindowWidth, 50},
+              {kWindowWidth / 2, kCeilingSize / 2});
+    screen_time_ += 1 / 60.0f;
+    time_ += 1 / 60.0f;
+  } else {
+    goal_ = "none";
+    screen_time_ = 0.0f;
+    std::stringstream ss;
+    ss << "Red: " << red_goals_;
+    ss << "\t \t \t \t \t Time Left: " << (int) time_;
+    ss << "\t \t \t \t \t \t \t Blue: " << blue_goals_;
+    PrintText(ss.str(), {kWindowWidth, 50},
+              {kWindowWidth / 2, kCeilingSize / 2});
+  }
 }
 
 } // namespace myapp

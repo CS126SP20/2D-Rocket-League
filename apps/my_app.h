@@ -7,6 +7,7 @@
 #include <cinder/ImageIo.h>
 #include <cinder/gl/Texture.h>
 #include <Box2D/Box2D.h>
+#include <mylibrary/example.h>
 
 
 namespace myapp {
@@ -19,11 +20,27 @@ class MyApp : public cinder::app::App {
   void draw() override;
   void keyDown(cinder::app::KeyEvent) override;
  private:
+  // Renders all images as cinder objects
+  void LoadImages();
+  // After goal is scored, it recreates the box2d world
   void Reset();
+  // Creates the Box2d world
   void InitWorld();
+  //Method from snake which prints onto screen
   void PrintText(const std::string& text, const cinder::ivec2& size,
                  const cinder::vec2& loc);
+  // Draws all the non moving images like the goal and ground into correct spot
   void DrawBackground();
+  // Draws all game ending messages like who wins
+  void DrawGameOver();
+  // Draws ball in motion depending on box2d world
+  void DrawBall();
+  // Draws red car in motion depending on box2d world
+  void DrawRedCar();
+  // Draws blue car in motion depending on box2d world
+  void DrawBlueCar();
+  // Draws current scores for both teams and time left in game
+  void DrawScoreboard();
 
   std::unique_ptr<b2World> world_;
   cinder::gl::TextureRef background_image_;
