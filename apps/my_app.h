@@ -29,15 +29,18 @@ class MyApp : public cinder::app::App {
   cinder::gl::TextureRef ball_image_;
   cinder::gl::TextureRef goal_image_;
   cinder::gl::TextureRef car_image_;
-  b2Body* ball_body_;
-  b2Body* red_car_;
-  b2Body* blue_car_;
+  b2Body* ball_body_{};
+  b2Body* red_car_{};
+  b2Body* blue_car_{};
   bool is_red_on_ground_ = false;
   bool is_blue_on_ground_ = false;
   bool has_red_boosted_ = false;
   bool has_blue_boosted = false;
   int red_jump_count_ = 0;
   int blue_jump_count_ = 0;
+  int red_goals_ = 0;
+  int blue_goals_ = 0;
+  std::string goal = "none";
 };
 
 }  // namespace myapp

@@ -33,8 +33,10 @@ const float kRestitution = 0.6f;
 const float kFriction = 0.3f;
 const int kSpeed = 15;
 const float kBoostSpeed = 20;
-const float kAngleSpeed = 1.3f;
+const float kAngleSpeed = 40.0f;
+const float kMaxAng = 2.8f;
 const float kCarToWallBuffer = 0.12f;
+const float kCrossbarBuffer = 0.3f;
 
 using cinder::app::KeyEvent;
 
@@ -58,6 +60,20 @@ void MyApp::setup() {
 void MyApp::update() {
   // Is one move in the box2d world
   world_->Step(kTimeStep, kVelocityIterations, kPositionIterations);
+
+  // Checking for a goal
+  b2Vec2 ball_position = ball_body_->GetPosition();
+  if (ball_position.x + kBallRadius <= kGoalWidth * kPixelToMeters &&
+        ball_position.y + kBallRadius <= kGoalHeight * kPixelToMeters) {
+    goal = "blue";
+    blue_goals_++;
+  }
+  if (ball_position.x + kBallRadius >= (kWindowWidth - kGoalWidth) *
+        kPixelToMeters && ball_position.y + kBallRadius <= kGoalHeight
+        * kPixelToMeters) {
+    goal = "red";
+    red_goals_++;
+  }
 
   // Check if red car is on ground and resets jumps
   b2Vec2 red_car_position = red_car_->GetPosition();
@@ -130,6 +146,17 @@ void MyApp::draw() {
                    cinder::Rectf(kCarWidth / 2.0f, -kCarHeight / 2.0f,
                                  -kCarWidth / 2.0f, kCarHeight / 2.0f));
   cinder::gl::popModelMatrix();
+
+  if (goal == "blue") {
+    cinder::gl::color(0, 0, 1);
+    cinder::gl::drawSolidRect(
+        cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
+  }
+  if (goal == "red") {
+    cinder::gl::color(1, 0, 0);
+    cinder::gl::drawSolidRect(
+        cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
+  }
 }
 
 void MyApp::keyDown(KeyEvent event) {
@@ -155,16 +182,16 @@ void MyApp::keyDown(KeyEvent event) {
     case KeyEvent::KEY_RIGHT: {
       if (is_blue_on_ground_) {
         blue_car_->SetLinearVelocity({kSpeed, blue_velocity.y});
-      } else {
-        blue_car_->SetAngularVelocity(-kAngleSpeed);
+      } else if (abs(blue_car_->GetAngularVelocity()) < kMaxAng) {
+        blue_car_->ApplyTorque(-kAngleSpeed * blue_car_->GetInertia());
       }
       break;
     }
     case KeyEvent::KEY_LEFT: {
       if (is_blue_on_ground_) {
         blue_car_->SetLinearVelocity({-kSpeed, blue_velocity.y});
-      } else {
-        blue_car_->SetAngularVelocity(kAngleSpeed);
+      } else if (abs(blue_car_->GetAngularVelocity()) < kMaxAng) {
+        blue_car_->ApplyTorque(kAngleSpeed * blue_car_->GetInertia());
       }
       break;
     }
@@ -185,16 +212,16 @@ void MyApp::keyDown(KeyEvent event) {
     case KeyEvent::KEY_d: {
       if (is_red_on_ground_) {
         red_car_->SetLinearVelocity({kSpeed, red_velocity.y});
-      } else {
-        red_car_->SetAngularVelocity(-kAngleSpeed);
+      } else if (abs(red_car_->GetAngularVelocity()) < kMaxAng) {
+        red_car_->ApplyTorque(-kAngleSpeed * red_car_->GetInertia());
       }
       break;
     }
     case KeyEvent::KEY_a: {
       if (is_red_on_ground_) {
         red_car_->SetLinearVelocity({-kSpeed, red_velocity.y});
-      } else {
-        red_car_->SetAngularVelocity(kAngleSpeed);
+      } else if (abs(red_car_->GetAngularVelocity()) < kMaxAng) {
+        red_car_->ApplyTorque(kAngleSpeed * red_car_->GetInertia());
       }
       break;
     }
@@ -252,7 +279,7 @@ void MyApp::InitWorld() {
 
   b2FixtureDef ball_fixture_def;
   ball_fixture_def.shape = &circle;
-  ball_fixture_def.restitution = kRestitution + kCarToWallBuffer;
+  ball_fixture_def.restitution = 1.3f * kRestitution;
   ball_fixture_def.density = 1.0f;
   ball_fixture_def.friction = kFriction;
 
@@ -285,10 +312,13 @@ void MyApp::InitWorld() {
 
   b2FixtureDef red_car_fixture;
   red_car_fixture.friction = kFriction;
-  red_car_fixture.restitution = kRestitution;
+  red_car_fixture.restitution = kRestitution / 2.0f;
   red_car_fixture.shape = &red_car_shape;
   red_car_fixture.density = 10.0f;
   red_car_->CreateFixture(&red_car_fixture);
+
+  blue_car_->SetFixedRotation(false);
+  red_car_->SetFixedRotation(false);
 
   // Flipping x coordinates for blue car
   b2PolygonShape blue_car_shape;
@@ -301,10 +331,31 @@ void MyApp::InitWorld() {
 
   b2FixtureDef blue_car_fixture;
   blue_car_fixture.friction = kFriction;
-  blue_car_fixture.restitution = kRestitution;
+  blue_car_fixture.restitution = kRestitution / 2.0f;
   blue_car_fixture.shape = &blue_car_shape;
   blue_car_fixture.density = 10.0f;
   blue_car_->CreateFixture(&blue_car_fixture);
+
+  // Creating crossbar shape
+  b2PolygonShape crossbar;
+  crossbar.SetAsBox(kGoalWidth / 2.0f * kPixelToMeters, kCrossbarBuffer);
+  // Creating 2 crossbars
+  b2BodyDef left_goal_def;
+  left_goal_def.position = {kGoalWidth / 2.0f * kPixelToMeters,
+                            kGoalHeight * kPixelToMeters - kCrossbarBuffer};
+  b2Body* left_goal = world_->CreateBody(&left_goal_def);
+  b2FixtureDef l_crossbar_fixture;
+  l_crossbar_fixture.shape = &crossbar;
+  left_goal->CreateFixture(&l_crossbar_fixture);
+
+  b2BodyDef right_goal_def;
+  right_goal_def.position = {(kWindowWidth - kGoalWidth / 2.0f) *
+                            kPixelToMeters,kGoalHeight * kPixelToMeters -
+                            kCrossbarBuffer};
+  b2Body* right_goal = world_->CreateBody(&right_goal_def);
+  b2FixtureDef r_crossbar_fixture;
+  r_crossbar_fixture.shape = &crossbar;
+  right_goal->CreateFixture(&r_crossbar_fixture);
 }
 
 void MyApp::DrawBackground() {
