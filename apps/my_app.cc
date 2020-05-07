@@ -48,20 +48,25 @@ void MyApp::setup() {
   InitWorld();
 
   background_image_ = cinder::gl::Texture::create(
-      cinder::loadImage(loadAsset("soccer-background.jpg")));
+      cinder::loadImage(loadAsset(
+          "soccer-background.jpg")));
   grass_image_ =
-      cinder::gl::Texture::create(cinder::loadImage(loadAsset("grass.jpg")));
+      cinder::gl::Texture::create(cinder::loadImage(
+          loadAsset("grass.jpg")));
   ball_image_ = cinder::gl::Texture::create(
-      cinder::loadImage(loadAsset("soccer-ball.png")));
+      cinder::loadImage(loadAsset(
+          "soccer-ball.png")));
   goal_image_ = cinder::gl::Texture::create(
-      cinder::loadImage(loadAsset("soccer-goal.png")));
+      cinder::loadImage(loadAsset(
+          "soccer-goal.png")));
   car_image_ =
-      cinder::gl::Texture::create(cinder::loadImage(loadAsset("car.png")));
+      cinder::gl::Texture::create(cinder::loadImage(
+          loadAsset("car.png")));
 }
 
 void MyApp::update() {
   // Records time
-  time = time - 1.0f / 60.0f;
+  time_ = time_ - 1.0f / 60.0f;
   // Is one move in the box2d world
   world_->Step(kTimeStep, kVelocityIterations, kPositionIterations);
 
@@ -69,15 +74,17 @@ void MyApp::update() {
   b2Vec2 ball_position = ball_body_->GetPosition();
   if (ball_position.x + kBallRadius <= kGoalWidth * kPixelToMeters &&
         ball_position.y + kBallRadius <= kGoalHeight * kPixelToMeters &&
-        goal != "blue") {
-    goal = "blue";
+        goal_ != "blue") {
+    goal_ = "blue";
     blue_goals_++;
+    Reset();
   }
   if (ball_position.x + kBallRadius >= (kWindowWidth - kGoalWidth) *
         kPixelToMeters && ball_position.y + kBallRadius <= kGoalHeight
-        * kPixelToMeters && goal != "red") {
-    goal = "red";
+        * kPixelToMeters && goal_ != "red") {
+    goal_ = "red";
     red_goals_++;
+    Reset();
   }
 
   // Check if red car is on ground and resets jumps
@@ -104,6 +111,32 @@ void MyApp::update() {
 }
 
 void MyApp::draw() {
+  // Game over
+  if (time_ <= -10) {
+    exit(0);
+  }
+  if (time_ <= 0) {
+    if (red_goals_ > blue_goals_) {
+      cinder::gl::clear(cinder::Color(1, 0, 0));
+      std::stringstream ss;
+      ss << "RED WINS";
+      PrintText(ss.str(), {kWindowWidth, 200},
+                {kWindowWidth / 2, kWindowHeight / 2});
+    } else if (blue_goals_ > red_goals_) {
+      cinder::gl::clear(cinder::Color(0, 0, 1));
+      std::stringstream ss;
+      ss << "BLUE WINS";
+      PrintText(ss.str(), {kWindowWidth, 200},
+                {kWindowWidth / 2, kWindowHeight / 2});
+    } else {
+      cinder::gl::clear(cinder::Color(0, 0, 0));
+      std::stringstream ss;
+      ss << "DRAW";
+      PrintText(ss.str(), {kWindowWidth, 200},
+                {kWindowWidth / 2, kWindowHeight / 2});
+    }
+    return;
+  }
   DrawBackground();
 
   b2Vec2 ball_position = ball_body_->GetPosition();
@@ -133,8 +166,9 @@ void MyApp::draw() {
   cinder::gl::translate(red_x, red_y);
   cinder::gl::rotate(-red_angle);
   cinder::gl::draw(car_image_,
-                   cinder::Rectf(-kCarWidth / 2.0f, -kCarHeight / 2.0f,
-                                 kCarWidth / 2.0f, kCarHeight / 2.0f));
+                   cinder::Rectf(-kCarWidth / 2.0f,
+                       -kCarHeight / 2.0f,kCarWidth / 2.0f,
+                       kCarHeight / 2.0f));
   cinder::gl::popModelMatrix();
 
   // Drawing blue car with rotations
@@ -148,22 +182,37 @@ void MyApp::draw() {
   cinder::gl::translate(blue_x, blue_y);
   cinder::gl::rotate(-blue_angle);
   cinder::gl::draw(car_image_,
-                   cinder::Rectf(kCarWidth / 2.0f, -kCarHeight / 2.0f,
-                                 -kCarWidth / 2.0f, kCarHeight / 2.0f));
+                   cinder::Rectf(kCarWidth / 2.0f,
+                       -kCarHeight / 2.0f,-kCarWidth / 2.0f,
+                       kCarHeight / 2.0f));
   cinder::gl::popModelMatrix();
 
-  if (goal == "blue") {
+  if (goal_ == "blue" && screen_time_ <= 3.0f) {
     cinder::gl::color(0, 0, 1);
     cinder::gl::drawSolidRect(
         cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
-  } else if (goal == "red") {
+    std::stringstream ss;
+    ss << "Blue Scored";
+    PrintText(ss.str(), {kWindowWidth, 50},
+              {kWindowWidth / 2, kCeilingSize / 2});
+    screen_time_ += 1 / 60.0f;
+    time_ += 1 / 60.0f;
+  } else if (goal_ == "red" && screen_time_ <= 3.0f) {
     cinder::gl::color(1, 0, 0);
     cinder::gl::drawSolidRect(
         cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
+    std::stringstream ss;
+    ss << "Red Scored";
+    PrintText(ss.str(), {kWindowWidth, 50},
+              {kWindowWidth / 2, kCeilingSize / 2});
+    screen_time_ += 1 / 60.0f;
+    time_ += 1 / 60.0f;
   } else {
+    goal_ = "none";
+    screen_time_ = 0.0f;
     std::stringstream ss;
     ss << "Red: " << red_goals_;
-    ss << "\t \t \t \t \t Time Left: " << (int) time;
+    ss << "\t \t \t \t \t Time Left: " << (int) time_;
     ss << "\t \t \t \t \t \t \t Blue: " << blue_goals_;
     PrintText(ss.str(), {kWindowWidth, 50},
               {kWindowWidth / 2, kCeilingSize / 2});
@@ -264,18 +313,22 @@ void MyApp::InitWorld() {
   box_shape_def.friction = kFriction;
   box_shape_def.shape = &ground_edge;
 
-  ground_edge.Set(b2Vec2(0, 0), b2Vec2(kWindowWidth * kPixelToMeters, 0));
+  ground_edge.Set(b2Vec2(0, 0), b2Vec2(kWindowWidth *
+          kPixelToMeters, 0));
   ground_body->CreateFixture(&box_shape_def);
 
   ground_edge.Set(b2Vec2(kWindowWidth * kPixelToMeters, 0),
       b2Vec2(kWindowWidth * kPixelToMeters, kWindowHeight * kPixelToMeters));
   ground_body->CreateFixture(&box_shape_def);
 
-  ground_edge.Set(b2Vec2(kWindowWidth * kPixelToMeters, (kWindowHeight - kCeilingSize - kGroundSize) * kPixelToMeters),
-      b2Vec2(0, (kWindowHeight - kCeilingSize - kGroundSize) * kPixelToMeters));
+  ground_edge.Set(b2Vec2(kWindowWidth * kPixelToMeters, (
+      kWindowHeight - kCeilingSize - kGroundSize) * kPixelToMeters),
+      b2Vec2(0, (kWindowHeight - kCeilingSize - kGroundSize)
+      * kPixelToMeters));
   ground_body->CreateFixture(&box_shape_def);
 
-  ground_edge.Set(b2Vec2(0, kWindowHeight * kPixelToMeters), b2Vec2(0, 0));
+  ground_edge.Set(b2Vec2(0, kWindowHeight * kPixelToMeters),
+      b2Vec2(0, 0));
   ground_body->CreateFixture(&box_shape_def);
 
   // Creating the soccer ball
@@ -396,31 +449,43 @@ void MyApp::DrawBackground() {
   cinder::gl::draw(goal_image_,
                    cinder::Rectf(kWindowWidth - kGoalWidth,
                                  kWindowHeight - kGroundSize - kGoalHeight,
-                                 kWindowWidth, kWindowHeight - kGroundSize));
+                                 kWindowWidth, kWindowHeight -
+                                 kGroundSize));
   // Left goal
   cinder::gl::draw(
       goal_image_,
-      cinder::Rectf(kGoalWidth, kWindowHeight - kGroundSize - kGoalHeight, 0.0f,
-                    kWindowHeight - kGroundSize));
+      cinder::Rectf(kGoalWidth,
+          kWindowHeight - kGroundSize -kGoalHeight, 0.0f,
+          kWindowHeight - kGroundSize));
 }
 // Copied from snake project
 void MyApp::PrintText(const std::string& text, const cinder::ivec2& size,
                const cinder::vec2& loc) {
   cinder::gl::color(1, 1, 1);
-
+  int font_size;
+  if (time_ <= 0) {
+    font_size = 150;
+  } else {
+    font_size = 50;
+  }
   auto box = cinder::TextBox()
       .alignment(cinder::TextBox::CENTER)
-      .font(cinder::Font("Helvetica", 50))
+      .font(cinder::Font("Helvetica", font_size))
       .size(size)
       .color({1, 1, 1})
       .backgroundColor({0, 0, 0, 0})
       .text(text);
 
   const auto box_size = box.getSize();
-  const cinder::vec2 locp = {loc.x - box_size.x / 2, loc.y - box_size.y / 2};
+  const cinder::vec2 locp = {loc.x - box_size.x / 2, loc.y - box_size.y
+                             / 2};
   const auto surface = box.render();
   const auto texture = cinder::gl::Texture::create(surface);
   cinder::gl::draw(texture, locp);
+}
+
+void MyApp::Reset() {
+  InitWorld();
 }
 
 } // namespace myapp

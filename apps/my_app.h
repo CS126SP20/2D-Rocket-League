@@ -19,8 +19,9 @@ class MyApp : public cinder::app::App {
   void draw() override;
   void keyDown(cinder::app::KeyEvent) override;
  private:
+  void Reset();
   void InitWorld();
-  static void PrintText(const std::string& text, const cinder::ivec2& size,
+  void PrintText(const std::string& text, const cinder::ivec2& size,
                  const cinder::vec2& loc);
   void DrawBackground();
 
@@ -41,8 +42,9 @@ class MyApp : public cinder::app::App {
   int blue_jump_count_ = 0;
   int red_goals_ = 0;
   int blue_goals_ = 0;
-  float time = 60.01f;
-  std::string goal = "none";
+  float time_ = 90.01f;
+  float screen_time_ = 0.0f;
+  std::string goal_ = "none";
 };
 
 }  // namespace myapp
