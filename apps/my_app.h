@@ -20,7 +20,8 @@ class MyApp : public cinder::app::App {
   void keyDown(cinder::app::KeyEvent) override;
  private:
   void InitWorld();
-
+  static void PrintText(const std::string& text, const cinder::ivec2& size,
+                 const cinder::vec2& loc);
   void DrawBackground();
 
   std::unique_ptr<b2World> world_;
@@ -40,6 +41,7 @@ class MyApp : public cinder::app::App {
   int blue_jump_count_ = 0;
   int red_goals_ = 0;
   int blue_goals_ = 0;
+  float time = 60.01f;
   std::string goal = "none";
 };
 

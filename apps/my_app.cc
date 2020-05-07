@@ -5,6 +5,8 @@
 #include <cinder/app/App.h>
 #include <cinder/gl/draw.h>
 #include <cinder/gl/gl.h>
+#include <cinder/Text.h>
+#include <cinder/Font.h>
 
 #include "Box2D/Box2D.h"
 
@@ -15,7 +17,7 @@ const float kPixelToMeters = 0.1f;
 const float kBallRadius = 2.1f;
 const int kWindowWidth = 1200;
 const int kWindowHeight = 690;
-const int kCeilingSize = 30;
+const int kCeilingSize = 170;
 const int kGroundSize = 60;
 const int kGoalHeight = 140;
 const int kGoalWidth = 80;
@@ -58,19 +60,22 @@ void MyApp::setup() {
 }
 
 void MyApp::update() {
+  // Records time
+  time = time - 1.0f / 60.0f;
   // Is one move in the box2d world
   world_->Step(kTimeStep, kVelocityIterations, kPositionIterations);
 
   // Checking for a goal
   b2Vec2 ball_position = ball_body_->GetPosition();
   if (ball_position.x + kBallRadius <= kGoalWidth * kPixelToMeters &&
-        ball_position.y + kBallRadius <= kGoalHeight * kPixelToMeters) {
+        ball_position.y + kBallRadius <= kGoalHeight * kPixelToMeters &&
+        goal != "blue") {
     goal = "blue";
     blue_goals_++;
   }
   if (ball_position.x + kBallRadius >= (kWindowWidth - kGoalWidth) *
         kPixelToMeters && ball_position.y + kBallRadius <= kGoalHeight
-        * kPixelToMeters) {
+        * kPixelToMeters && goal != "red") {
     goal = "red";
     red_goals_++;
   }
@@ -151,11 +156,17 @@ void MyApp::draw() {
     cinder::gl::color(0, 0, 1);
     cinder::gl::drawSolidRect(
         cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
-  }
-  if (goal == "red") {
+  } else if (goal == "red") {
     cinder::gl::color(1, 0, 0);
     cinder::gl::drawSolidRect(
         cinder::Rectf(0.0f, 0.0f, kWindowWidth, kCeilingSize));
+  } else {
+    std::stringstream ss;
+    ss << "Red: " << red_goals_;
+    ss << "\t \t \t \t \t Time Left: " << (int) time;
+    ss << "\t \t \t \t \t \t \t Blue: " << blue_goals_;
+    PrintText(ss.str(), {kWindowWidth, 50},
+              {kWindowWidth / 2, kCeilingSize / 2});
   }
 }
 
@@ -391,6 +402,25 @@ void MyApp::DrawBackground() {
       goal_image_,
       cinder::Rectf(kGoalWidth, kWindowHeight - kGroundSize - kGoalHeight, 0.0f,
                     kWindowHeight - kGroundSize));
-}  // namespace myapp
-
 }
+// Copied from snake project
+void MyApp::PrintText(const std::string& text, const cinder::ivec2& size,
+               const cinder::vec2& loc) {
+  cinder::gl::color(1, 1, 1);
+
+  auto box = cinder::TextBox()
+      .alignment(cinder::TextBox::CENTER)
+      .font(cinder::Font("Helvetica", 50))
+      .size(size)
+      .color({1, 1, 1})
+      .backgroundColor({0, 0, 0, 0})
+      .text(text);
+
+  const auto box_size = box.getSize();
+  const cinder::vec2 locp = {loc.x - box_size.x / 2, loc.y - box_size.y / 2};
+  const auto surface = box.render();
+  const auto texture = cinder::gl::Texture::create(surface);
+  cinder::gl::draw(texture, locp);
+}
+
+} // namespace myapp
