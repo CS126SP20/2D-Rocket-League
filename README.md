@@ -4,6 +4,8 @@
 
 ## What is 2D Rocket League?
 
+<img src="https://github.com/CS126SP20/final-project-tanay2/blob/master/assets/game-view.jpg" width="300"> |
+
 2D Rocket League is like a combination of the PC/Console game Rocket 
 League and Head Soccer. It is a 2 player game with each player spawning 
 on one side of the screen by their respective goals. Games are 90 seconds
